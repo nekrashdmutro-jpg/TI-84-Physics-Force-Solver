@@ -91,7 +91,7 @@ def test_display_overflow_is_rejected():
 def test_menu_text_limits_are_rejected():
     original = fb.PROGRAMS["GSET"]
     try:
-        fb.PROGRAMS["GSET"] = ('ClrHome\nMenu("T","%s",2\nLbl 2\nReturn\n' % ("X" * 25))
+        fb.PROGRAMS["GSET"] = 'ClrHome\nMenu("T","%s",2)\nLbl 2\nReturn\n' % ("X" * 25)
         errors = fb.validate_sources()
         assert any("Menu( item" in error for error in errors), errors
     finally:
