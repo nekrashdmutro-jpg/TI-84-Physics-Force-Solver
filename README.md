@@ -42,6 +42,10 @@ Verified: all 7 programs are present in the group.
 Python 3.10 or newer is required by `tivars`. `tivars` itself handles the
 TI-BASIC tokenizer and the group-file container; nothing else is needed.
 
+**No Python handy?** Every push builds the file in CI and attaches it:
+**Actions → build → latest run → Artifacts → `FORCES-8xg`**. The zip contains
+the ready-to-transfer `FORCES.8xg`.
+
 ## Installing on the calculator
 
 1. Run `python forces_builder.py` so `FORCES.8xg` exists on your computer.
@@ -146,11 +150,12 @@ Honest accounting, because "it works" is not a test:
 | Claim | Status |
 |---|---|
 | TI-BASIC sources written and structurally reviewed | **Done** (by hand, line by line) |
-| Program names, labels, menu targets, `Then`/`End`, `Output(` bounds, string widths | **Checked** by `validate_sources()`, and again by the test suite |
-| Python generator executed | **Not in this repository's authoring environment** (no Python runtime there) — it runs when you run it, and in CI on every push |
-| TI-BASIC tokenized by `tivars` | **Only when the generator or CI is run** — `tivars` raises on an untokenizable line, so a failure is loud and points at the offending line |
-| `FORCES.8xg` created | **Only when the generator is run** (or downloaded from the CI artifact) |
-| Execution on a physical TI-84 Plus CE or an emulator | **Not performed.** The arithmetic was validated against the reference model in the test suite, but no run has been made on hardware or in an emulator such as CEmu. |
+| Program names, labels, menu targets, `Then`/`End`, `Output(` bounds, string widths | **Checked** by `validate_sources()` on every run |
+| Python generator executed | **Yes — in GitHub Actions** (Python 3.11, `tivars` 1.1.1). Output: `ok: 7 programs, syntax rules satisfied` / `ok: 7 programs tokenized` |
+| TI-BASIC tokenized by `tivars` | **Yes** — all 7 programs tokenized, and the token stream decodes back to the exact source (`test_tokens_round_trip_to_the_same_source`), so no command was silently read as single letters |
+| `FORCES.8xg` created | **Yes** — 13,852 bytes, re-opened and verified to contain all 7 programs; also published as the `FORCES-8xg` CI artifact |
+| Test suite | **40 passed** (`python -m pytest -q`) |
+| Execution on a physical TI-84 Plus CE or an emulator | **Not performed.** The arithmetic is validated against the reference model in the test suite and the byte code is verified, but no run has been made on hardware or in an emulator such as CEmu. |
 
 The token sheet used for spelling (`8X.xml` from the TI-Toolkit tokens
 project) is what `tivars` matches against, so every command in the sources is

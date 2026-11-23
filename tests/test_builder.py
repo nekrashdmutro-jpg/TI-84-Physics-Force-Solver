@@ -119,6 +119,29 @@ def test_every_program_tokenizes():
         assert decoded.count("\n") == source.count("\n"), name
 
 
+def _normalize(text):
+    return "\n".join(line.strip() for line in text.replace("\r\n", "\n").splitlines())
+
+
+def test_tokens_round_trip_to_the_same_source():
+    """Tokenizing then decoding must give back exactly what was written.
+
+    This is the test that catches silent mis-munching: if a command such as
+    "Pause " were read as the letters P,A,U,S,E, tokenization would still
+    succeed, but the decoded text would come back as "PAUSE" and fail here.
+    """
+    _tivars()
+    from tivars.models import TI_84PCE
+    from tivars.types import TIProgram
+
+    for name in fb.ORDER:
+        source = fb.clean_source(fb.PROGRAMS[name])
+        program = TIProgram(name=name)
+        program.load_string(source, model=TI_84PCE)
+        decoded = f"{program:a}"
+        assert _normalize(decoded) == _normalize(source), name
+
+
 def test_group_file_holds_every_program(tmp_path):
     _tivars()
     target = tmp_path / fb.GROUP_FILE
