@@ -143,8 +143,11 @@ python forces_builder.py
 ```
 
 * `tests/test_builder.py` — program names, label/menu/`prgm` targets,
-  `Then`/`End` balance, `Output(` bounds, string widths, then actual
-  tokenization of all seven programs and an ungroup/re-group round trip of the
+  `Then`/`End` balance, `Output(` bounds **and rendered width**, Menu title/item
+  and Input prompt limits, the `Full` guard, the motion-direction wiring in the
+  two friction solvers, VECADD's angle and N/S/E/W validation and its cardinal
+  direction labels, then actual tokenization of all seven programs, a token
+  round trip back to the source, and an ungroup/re-group round trip of the
   written `FORCES.8xg`.
 * `tests/test_physics_reference.py` — the physics model, exercised against
   independently hand-worked values: perpendicular and opposite vectors, all
@@ -167,8 +170,8 @@ Honest accounting, because "it works" is not a test:
 | Program names, labels, menu targets, `Then`/`End`, `Output(` bounds, string widths | **Checked** by `validate_sources()` on every run |
 | Python generator executed | **Yes — in GitHub Actions** (Python 3.11, `tivars` 1.1.1). Output: `ok: 7 programs, syntax rules satisfied` / `ok: 7 programs tokenized` |
 | TI-BASIC tokenized by `tivars` | **Yes** — all 7 programs tokenized, and the token stream decodes back to the exact source (`test_tokens_round_trip_to_the_same_source`), so no command was silently read as single letters |
-| `FORCES.8xg` created | **Yes** — 13,852 bytes, re-opened and verified to contain all 7 programs; also published as the `FORCES-8xg` CI artifact |
-| Test suite | **All pass** in CI (`python -m pytest -q`) |
+| `FORCES.8xg` created | **Yes** — 14,943 bytes, re-opened and verified to contain all 7 programs; also published as the `FORCES-8xg` CI artifact |
+| Test suite | **50 passed** (`python -m pytest -q`) |
 | Execution on a physical TI-84 Plus CE or an emulator | **Not performed.** The arithmetic is validated against the reference model in the test suite and the byte code is verified, but no run has been made on hardware or in an emulator such as CEmu. |
 
 The token sheet used for spelling (`8X.xml` from the TI-Toolkit tokens
