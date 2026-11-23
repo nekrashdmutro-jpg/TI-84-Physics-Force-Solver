@@ -11,18 +11,19 @@ single calculator group file, FORCES.8xg, in the current directory.
 
 Programs in the group (all names are 8 characters or fewer):
 
-    FORCEMNU   master menu / launcher
-    GSET       gravity setup, stores g in the shared variable G
-    VECADD     2-D vector addition, three input modes
-    FLATFRC    horizontal-surface force solver
-    ANGPULL    force applied above or below the horizontal
-    RAMPSLV    inclined-plane solver
-    FBDHELP    multi-page free-body-diagram reference
+    FORCEMNU  master menu / launcher
+    GSET      gravity setup, stores g in the shared variable G
+    VECADD    2-D vector addition, three input modes
+    FLATFRC   horizontal-surface force solver
+    ANGPULL   force applied above or below the horizontal
+    RAMPSLV   inclined-plane solver
+    FBDDRAW   graph-screen free-body diagram viewer
+    FBDHELP   multi-page free-body-diagram reference
 
 Shared calculator variables
 ---------------------------
-    G          gravitational acceleration (m/s^2), default 9.8
-    L1 .. L4   vector component / magnitude / angle lists used by VECADD
+    G         gravitational acceleration (m/s^2), default 9.8
+    L1 .. L4  vector component / magnitude / angle lists used by VECADD
 
 Design rules enforced by validate_sources() below
 -------------------------------------------------
@@ -52,13 +53,12 @@ GROUP_FILE = "FORCES.8xg"
 #   If Then Else End While Repeat For( Return Stop Lbl Goto Pause Input
 #   Prompt Disp Output( Menu( ClrHome Degree Float prgm
 #   sqrt( tan^-1( sin( cos( sin( abs( round( min( max( fPart( int( not(
-#   ->  >=  <=  !=
+#   -> >= <= !=
 #
 # Tokens that carry a trailing space in the token sheet (Disp, If, Lbl, Goto,
 # Pause, Input, Prompt, While, Repeat) are always followed by their argument
 # here, so no line ever ends in a space.
-# ---------------------------------------------------------------------------
-
+#
 FORCEMNU = """\
 ClrHome
 Degree
@@ -68,7 +68,7 @@ If G<=0
 9.8->G
 Lbl 1
 ClrHome
-Menu("FORCE SOLVER","1 GRAVITY SETUP",2,"2 VECTOR ADD",3,"3 HORIZONTAL",4,"4 ANGLED FORCE",5,"5 INCLINED PLANE",6,"6 FBD HELP",7,"7 EXIT",8)
+Menu("FORCE SOLVER","1 GRAVITY SETUP",2,"2 VECTOR ADD",3,"3 HORIZONTAL",4,"4 ANGLED FORCE",5,"5 INCLINED PLANE",6,"6 FBD DIAGRAM",7,"7 FBD HELP",8,"8 EXIT",9)
 Lbl 2
 prgmGSET
 Goto 1
@@ -85,9 +85,12 @@ Lbl 6
 prgmRAMPSLV
 Goto 1
 Lbl 7
-prgmFBDHELP
+prgmFBDDRAW
 Goto 1
 Lbl 8
+prgmFBDHELP
+Goto 1
+Lbl 9
 ClrHome
 Degree
 Float
@@ -430,6 +433,7 @@ Goto 1
 Lbl 62
 Return
 """
+
 
 FLATFRC = """\
 ClrHome
@@ -990,10 +994,10 @@ Pause "DONE"
 Menu("AGAIN","NEW PROBLEM",81,"MAIN MENU",82)
 """
 
+
 RAMPSLV = """\
 ClrHome
-Degree
-Full
+DegreeFull
 If G<=0
 9.8->G
 Lbl 1
@@ -1209,6 +1213,459 @@ Return
 """
 
 
+FBDDRAW = """\
+ClrHome
+Degree
+Full
+If G<=0
+9.8->G
+Lbl 1
+ClrHome
+Menu("FBD DIAGRAM","1 HORIZONTAL",2,"2 ANGLED PULL",3,"3 INCLINED PLANE",4,"4 HANGING ROPE",5,"5 MAIN MENU",99)
+Lbl 2
+1->Q
+Goto 10
+Lbl 3
+2->Q
+Goto 10
+Lbl 4
+3->Q
+Goto 10
+Lbl 5
+4->Q
+Lbl 10
+0->W
+0->N
+0->F
+0->E
+0->M
+0->A
+0->P
+1->H
+1->D
+1->U
+1->R
+30->T
+ClrHome
+Menu("FORCE VALUES","1 SYMBOLS ONLY",11,"2 ENTER VALUES (N)",12)
+Lbl 11
+0->V
+Goto 15
+Lbl 12
+1->V
+Lbl 13
+ClrHome
+Output(1,1,"MASS (kg)")
+Output(2,1,"0 IF UNKNOWN")
+Input "M=",M
+If M<0
+Then
+Output(4,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 13
+End
+M*G->W
+Lbl 15
+If Q=4
+Then
+0->H
+2->A
+If V=1
+Then
+Lbl 16
+ClrHome
+Output(1,1,"TENSION FT (N)")
+Output(2,1,"0 IF UNKNOWN")
+Input "FT=",F
+If F<0
+Then
+Output(4,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 16
+End
+End
+Goto 60
+End
+If Q=2
+Then
+Lbl 17
+ClrHome
+Output(1,1,"ANGLE FROM HORIZ")
+Output(2,1,"0 TO 90 deg")
+Input "A=",T
+If T<0
+Then
+Output(4,1,"MUST BE 0 TO 90")
+Pause "RETRY"
+Goto 17
+End
+If T>90
+Then
+Output(4,1,"MUST BE 0 TO 90")
+Pause "RETRY"
+Goto 17
+End
+End
+If Q=3
+Then
+Lbl 18
+ClrHome
+Output(1,1,"RAMP ANGLE, deg")
+Output(2,1,"1 TO 89")
+Input "A=",T
+If T<=0
+Then
+Output(4,1,"MUST BE ABOVE 0")
+Pause "RETRY"
+Goto 18
+End
+If T>=90
+Then
+Output(4,1,"MUST BE BELOW 90")
+Pause "RETRY"
+Goto 18
+End
+End
+Lbl 20
+ClrHome
+Menu("PULL OR PUSH?","1 NONE",21,"2 APPLIED (Fa)",22,"3 TENSION (FT)",23)
+Lbl 21
+0->A
+Goto 29
+Lbl 22
+1->A
+Goto 24
+Lbl 23
+2->A
+Lbl 24
+If Q=3
+Then
+Menu("FORCE DIRECTION","1 UP RAMP",25,"2 DOWN RAMP",26)
+End
+If Q<3
+Then
+Menu("FORCE DIRECTION","1 RIGHT",25,"2 LEFT",26)
+End
+Lbl 25
+1->D
+Goto 27
+Lbl 26
+-1->D
+Lbl 27
+If Q=2
+Then
+Menu("VERTICAL PART","1 PULLING UP",41,"2 PUSHING DOWN",42)
+Lbl 41
+1->U
+Goto 28
+Lbl 42
+-1->U
+End
+Lbl 28
+If V=1
+Then
+Lbl 43
+ClrHome
+Output(1,1,"FORCE MAGNITUDE (N)")
+Output(2,1,"0 IF UNKNOWN")
+Input "F=",F
+If F<0
+Then
+Output(4,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 43
+End
+End
+Lbl 29
+If V=1
+Then
+If W>0
+Then
+If Q=1
+W->N
+If Q=2
+Then
+W-U*F*sin(T)->N
+If N<=0
+Then
+0->N
+0->H
+End
+End
+If Q=3
+W*cos(T)->N
+End
+End
+If H=0
+Goto 60
+Lbl 30
+ClrHome
+Menu("FRICTION FORCE?","1 NONE",31,"2 GENERAL (Ff)",32,"3 STATIC (Ffs)",33,"4 KINETIC (Ffk)",34)
+Lbl 31
+0->P
+Goto 60
+Lbl 32
+1->P
+Goto 35
+Lbl 33
+2->P
+Goto 35
+Lbl 34
+3->P
+Lbl 35
+If Q=3
+Then
+Menu("FRICTION DIR","1 UP RAMP",36,"2 DOWN RAMP",37)
+End
+If Q<3
+Then
+Menu("FRICTION DIR","1 RIGHT",36,"2 LEFT",37)
+End
+Lbl 36
+1->R
+Goto 38
+Lbl 37
+-1->R
+Lbl 38
+If V=1
+Then
+Lbl 39
+ClrHome
+Output(1,1,"FRICTION (N)")
+Output(2,1,"0 IF UNKNOWN")
+Input "Ff=",E
+If E<0
+Then
+Output(4,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 39
+End
+End
+Lbl 60
+ClrDraw
+AxesOff
+GridOff
+LabelOff
+-132->Xmin
+132->Xmax
+-82->Ymin
+82->Ymax
+If Q=1
+Text(2,4,"FBD: HORIZONTAL")
+If Q=2
+Text(2,4,"FBD: ANGLED FORCE")
+If Q=3
+Text(2,4,"FBD: INCLINED PLANE")
+If Q=4
+Text(2,4,"FBD: HANGING OBJECT")
+If Q=3
+Goto 75
+Line(-12,-10,12,-10)
+Line(12,-10,12,10)
+Line(12,10,-12,10)
+Line(-12,10,-12,-10)
+If Q<3
+Then
+Line(-65,-11,-13,-11)
+Line(13,-11,65,-11)
+End
+Line(0,-10,0,-56)
+Line(-4,-50,0,-56)
+Line(4,-50,0,-56)
+If W>0
+Text(130,136,"Fg ",round(W,1),"N")
+If W=0
+Text(130,136,"Fg")
+If Q=4
+Then
+Line(0,10,0,56)
+Line(-4,50,0,56)
+Line(4,50,0,56)
+If F>0
+Text(22,136,"FT ",round(F,1),"N")
+If F=0
+Text(22,136,"FT")
+Goto 89
+End
+If H=1
+Then
+Line(0,10,0,56)
+Line(-4,50,0,56)
+Line(4,50,0,56)
+If N>0
+Text(22,136,"FN ",round(N,1),"N")
+If N=0
+Text(22,136,"FN")
+End
+If A>0
+Then
+If Q=1
+Then
+Line(12*D,2,66*D,2)
+Line(66*D,2,60*D,6)
+Line(66*D,2,60*D,-2)
+62->I
+150->J
+If D=-1
+48->J
+End
+If Q=2
+Then
+D*cos(T)->C
+U*sin(T)->S
+12*D->X
+4*U->Y
+X+54*C->B
+Y+54*S->Z
+Line(X,Y,B,Z)
+Line(B,Z,B-6*C+4*S,Z-6*S-4*C)
+Line(B,Z,B-6*C-4*S,Z-6*S+4*C)
+round(max(14,min(136,82-Z-6)),0)->I
+round(max(2,min(198,132+B+4*D-22*(1-D))),0)->J
+End
+If A=1
+Then
+If F>0
+Text(I,J,"Fa ",round(F,1),"N")
+If F=0
+Text(I,J,"Fa")
+End
+If A=2
+Then
+If F>0
+Text(I,J,"FT ",round(F,1),"N")
+If F=0
+Text(I,J,"FT")
+End
+End
+If P>0
+Then
+Line(12*R,-5,64*R,-5)
+Line(64*R,-5,58*R,-1)
+Line(64*R,-5,58*R,-9)
+86->I
+150->J
+If R=-1
+44->J
+If P=1
+Then
+If E>0
+Text(I,J,"Ff ",round(E,1),"N")
+If E=0
+Text(I,J,"Ff")
+End
+If P=2
+Then
+If E>0
+Text(I,J,"Ffs ",round(E,1),"N")
+If E=0
+Text(I,J,"Ffs")
+End
+If P=3
+Then
+If E>0
+Text(I,J,"Ffk ",round(E,1),"N")
+If E=0
+Text(I,J,"Ffk")
+End
+End
+Goto 89
+Lbl 75
+cos(T)->C
+sin(T)->S
+Line(-72*C+10*S,-72*S-10*C,72*C+10*S,72*S-10*C)
+Line(-10*C+10*S,-10*S-10*C,10*C+10*S,10*S-10*C)
+Line(10*C+10*S,10*S-10*C,10*C-10*S,10*S+10*C)
+Line(10*C-10*S,10*S+10*C,-10*C-10*S,-10*S+10*C)
+Line(-10*C-10*S,-10*S+10*C,-10*C+10*S,-10*S-10*C)
+Line(0,-10,0,-56)
+Line(-4,-50,0,-56)
+Line(4,-50,0,-56)
+If W>0
+Text(130,136,"Fg ",round(W,1),"N")
+If W=0
+Text(130,136,"Fg")
+-54*S->B
+54*C->Z
+Line(-10*S,10*C,B,Z)
+Line(B,Z,B+6*S-4*C,Z-6*C-4*S)
+Line(B,Z,B+6*S+4*C,Z-6*C+4*S)
+round(max(14,82-Z-4),0)->I
+round(max(2,132+B-44),0)->J
+If N>0
+Text(I,J,"FN ",round(N,1),"N")
+If N=0
+Text(I,J,"FN")
+If A>0
+Then
+56*D*C->B
+56*D*S->Z
+Line(10*D*C,10*D*S,B,Z)
+Line(B,Z,B-6*D*C+4*D*S,Z-6*D*S-4*D*C)
+Line(B,Z,B-6*D*C-4*D*S,Z-6*D*S+4*D*C)
+round(max(14,min(136,82-Z-10)),0)->I
+round(max(2,min(198,132+B+4*D-22*(1-D))),0)->J
+If A=1
+Then
+If F>0
+Text(I,J,"Fa ",round(F,1),"N")
+If F=0
+Text(I,J,"Fa")
+End
+If A=2
+Then
+If F>0
+Text(I,J,"FT ",round(F,1),"N")
+If F=0
+Text(I,J,"FT")
+End
+End
+If P>0
+Then
+10*R*C+4*S->X
+10*R*S-4*C->Y
+52*R*C+4*S->B
+52*R*S-4*C->Z
+Line(X,Y,B,Z)
+Line(B,Z,B-6*R*C+4*R*S,Z-6*R*S-4*R*C)
+Line(B,Z,B-6*R*C-4*R*S,Z-6*R*S+4*R*C)
+round(max(14,min(136,82-Z+4)),0)->I
+round(max(2,min(198,132+B+4*R-22*(1-R))),0)->J
+If P=1
+Then
+If E>0
+Text(I,J,"Ff ",round(E,1),"N")
+If E=0
+Text(I,J,"Ff")
+End
+If P=2
+Then
+If E>0
+Text(I,J,"Ffs ",round(E,1),"N")
+If E=0
+Text(I,J,"Ffs")
+End
+If P=3
+Then
+If E>0
+Text(I,J,"Ffk ",round(E,1),"N")
+If E=0
+Text(I,J,"Ffk")
+End
+End
+Lbl 89
+Text(150,4,"PRESS ANY KEY")
+Lbl 90
+getKey->K
+If K=0
+Goto 90
+ClrHome
+Menu("AGAIN","NEW DIAGRAM",1,"MAIN MENU",99)
+Lbl 99
+Return
+"""
+
+
 FBDHELP = """\
 ClrHome
 Degree
@@ -1252,7 +1709,7 @@ ClrHome
 Output(1,1,"FRICTION DIAGRAM")
 Output(3,1,"    Fapp -->")
 Output(4,1,"   [BLOCK]")
-Output(5,1,"    Ff <--")
+Output(5,1,"     Ff <--")
 Output(7,1,"Ff acts against the")
 Output(8,1,"motion, or against the")
 Output(9,1,"push if nothing moves.")
@@ -1336,6 +1793,7 @@ Pause "DONE"
 Return
 """
 
+
 # ---------------------------------------------------------------------------
 # Program table
 # ---------------------------------------------------------------------------
@@ -1347,6 +1805,7 @@ PROGRAM_INFO = {
     "FLATFRC": "horizontal-surface force solver",
     "ANGPULL": "force above or below the horizontal",
     "RAMPSLV": "inclined-plane solver",
+    "FBDDRAW": "graph-screen free-body diagram viewer",
     "FBDHELP": "free-body-diagram reference",
 }
 
@@ -1357,10 +1816,20 @@ PROGRAMS = {
     "FLATFRC": FLATFRC,
     "ANGPULL": ANGPULL,
     "RAMPSLV": RAMPSLV,
+    "FBDDRAW": FBDDRAW,
     "FBDHELP": FBDHELP,
 }
 
-ORDER = ["FORCEMNU", "GSET", "VECADD", "FLATFRC", "ANGPULL", "RAMPSLV", "FBDHELP"]
+ORDER = [
+    "FORCEMNU",
+    "GSET",
+    "VECADD",
+    "FLATFRC",
+    "ANGPULL",
+    "RAMPSLV",
+    "FBDDRAW",
+    "FBDHELP",
+]
 
 # ---------------------------------------------------------------------------
 # Static validation of the TI-BASIC sources
@@ -1374,7 +1843,7 @@ INPUT_PROMPT_RE = re.compile(r'^Input "([^"]*)",')
 # Screen geometry of the TI-84 Plus CE home screen in the large font.
 MAX_ROW = 10
 MAX_COL = 26
-MAX_MENU_ITEM = 24   # item text limit on the color models
+MAX_MENU_ITEM = 24  # item text limit on the color models
 MAX_INPUT_PROMPT = 20
 # Widest a number can be once printed in Float mode (sign included), which is
 # what every numeric Output( in these sources produces via round(x,2).
@@ -1527,7 +1996,6 @@ def validate_sources() -> list:
 
             for call in re.findall(r"prgm([A-Za-z0-9]+)", line):
                 prgm_calls.append((tag, call.upper()))
-
             for text in re.findall(r'"([^"]*)"', line):
                 if len(text) > 26:
                     errors.append("%s: text %r is %d characters (screen is 26)"
@@ -1551,7 +2019,15 @@ def validate_sources() -> list:
 
     if "FORCEMNU" in PROGRAMS:
         src = clean_source(PROGRAMS["FORCEMNU"])
-        for entry in ("GSET", "VECADD", "FLATFRC", "ANGPULL", "RAMPSLV", "FBDHELP"):
+        for entry in (
+            "GSET",
+            "VECADD",
+            "FLATFRC",
+            "ANGPULL",
+            "RAMPSLV",
+            "FBDDRAW",
+            "FBDHELP",
+        ):
             if "prgm" + entry not in src:
                 errors.append("FORCEMNU: menu does not launch prgm%s" % entry)
 
