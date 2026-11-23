@@ -1,0 +1,37 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build FORCES.8xg
+        run: python forces_builder.py
+
+      - name: Show generated files
+        run: ls -l FORCES.8xg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FORCES-8xg
+          path: FORCES.8xg
+          if-no-files-found: error
