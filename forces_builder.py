@@ -62,6 +62,7 @@ GROUP_FILE = "FORCES.8xg"
 FORCEMNU = """\
 ClrHome
 Degree
+Full
 Float
 If G<=0
 9.8->G
@@ -97,6 +98,7 @@ Stop
 GSET = """\
 ClrHome
 Degree
+Full
 If G<=0
 9.8->G
 Output(1,1,"GRAVITY SETUP")
@@ -144,6 +146,7 @@ Return
 VECADD = """\
 ClrHome
 Degree
+Full
 Lbl 1
 ClrHome
 Menu("VECTOR ADDITION","MAG + ANGLE",10,"X AND Y PARTS",20,"N S E W TOTALS",30)
@@ -184,8 +187,21 @@ Pause "RETRY"
 Goto 11
 End
 F->L3(I)
+Lbl 13
 Output(6,1,"ANGLE deg 0-360")
 Input "A=",W
+If W<0
+Then
+Output(8,1,"MUST BE 0 TO 360")
+Pause "RETRY"
+Goto 13
+End
+If W>360
+Then
+Output(8,1,"MUST BE 0 TO 360")
+Pause "RETRY"
+Goto 13
+End
 W->L4(I)
 I+1->I
 If I<=N
@@ -247,17 +263,46 @@ Y+L2(I)->Y
 I+1->I
 If I<=N
 Goto 22
-0->Z
+1->Z
 Goto 40
 Lbl 30
 ClrHome
 Output(1,1,"TOTALS BY")
 Output(2,1,"DIRECTION")
 Output(3,1,"FORCES IN N")
+Output(4,1,"EACH 0 OR MORE")
+Lbl 35
 Input "NORTH=",Q
+If Q<0
+Then
+Output(8,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 35
+End
+Lbl 36
 Input "SOUTH=",R
+If R<0
+Then
+Output(8,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 36
+End
+Lbl 37
 Input "EAST=",S
+If S<0
+Then
+Output(8,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 37
+End
+Lbl 38
 Input "WEST=",U
+If U<0
+Then
+Output(8,1,"MUST BE 0 OR MORE")
+Pause "RETRY"
+Goto 38
+End
 S-U->X
 Q-R->Y
 0->Z
@@ -270,10 +315,21 @@ ClrHome
 Output(1,1,"COMPONENTS (N)")
 Output(2,1,"VECTOR")
 Output(2,8,I)
+Output(2,11,"OF")
+Output(2,14,N)
+Output(3,1,"SIGNED X AND Y")
 Output(4,1,"Fx")
-Output(4,5,round(L1(I),2))
+Output(4,4,round(L1(I),2))
 Output(5,1,"Fy")
-Output(5,5,round(L2(I),2))
+Output(5,4,round(L2(I),2))
+If L1(I)>0
+Output(4,15,"E")
+If L1(I)<0
+Output(4,15,"W")
+If L2(I)>0
+Output(5,15,"N")
+If L2(I)<0
+Output(5,15,"S")
 Pause "NEXT"
 I+1->I
 If I<=N
@@ -282,9 +338,25 @@ Lbl 42
 ClrHome
 Output(1,1,"VECTOR SUM (N)")
 Output(3,1,"Sum Fx")
-Output(3,9,round(X,2))
+Output(3,8,round(X,2))
 Output(4,1,"Sum Fy")
-Output(4,9,round(Y,2))
+Output(4,8,round(Y,2))
+If X>0
+Output(3,18,"E")
+If X<0
+Output(3,18,"W")
+If Y>0
+Output(4,18,"N")
+If Y<0
+Output(4,18,"S")
+Output(6,1,"EAST (N)")
+Output(6,11,round(max(X,0),2))
+Output(7,1,"WEST (N)")
+Output(7,11,round(max(-X,0),2))
+Output(8,1,"NORTH (N)")
+Output(8,11,round(max(Y,0),2))
+Output(9,1,"SOUTH (N)")
+Output(9,11,round(max(-Y,0),2))
 Pause "NEXT"
 sqrt(X*X+Y*Y)->R
 ClrHome
@@ -362,6 +434,7 @@ Return
 FLATFRC = """\
 ClrHome
 Degree
+Full
 If G<=0
 9.8->G
 Lbl 1
@@ -405,6 +478,21 @@ Goto 10
 Lbl 9
 3->Q
 Lbl 10
+1->R
+If Q=1
+Goto 41
+If Q=3
+Goto 40
+Goto 41
+Lbl 40
+ClrHome
+Menu("MOVING WHICH WAY?","SAME AS PUSH",42,"OPPOSITE",43)
+Lbl 42
+1->R
+Goto 41
+Lbl 43
+-1->R
+Lbl 41
 ClrHome
 Menu("STATIC MU","KNOWN",11,"ZERO",12,"UNKNOWN",13)
 Lbl 11
@@ -525,6 +613,7 @@ Output(5,1,"Fk needed (N)")
 Output(5,15,round(F,2))
 Output(6,1,"Mu k needed")
 Output(6,15,round(F/N,2))
+Output(7,1,"MOTION IS ALONG PUSH")
 If J=0
 Then
 Output(8,1,"ENTER THIS MU K")
@@ -552,18 +641,22 @@ Goto 30
 End
 Output(3,1,"Fk (N)")
 Output(3,8,round(E,2))
-(F-E)*D->U
+D*(F-R*E)->U
 U/M->V
 Output(4,1,"Fnet (N)")
 Output(4,10,round(U,2))
 Output(6,1,"a (m/s2)")
 Output(6,11,round(V,2))
-If V>0
-Output(8,1,"SAME WAY AS PUSH")
-If V<0
-Output(8,1,"OPPOSITE TO PUSH")
 If V=0
 Output(8,1,"ZERO ACCELERATION")
+If V*D>0
+Output(8,1,"a IS SAME AS PUSH")
+If V*D<0
+Output(8,1,"a IS OPPOSITE PUSH")
+If V*D*R>0
+Output(9,1,"SPEEDING UP")
+If V*D*R<0
+Output(9,1,"SLOWING DOWN")
 Lbl 30
 Pause "DONE"
 Menu("AGAIN","NEW PROBLEM",31,"MAIN MENU",32)
@@ -577,6 +670,7 @@ Return
 ANGPULL = """\
 ClrHome
 Degree
+Full
 If G<=0
 9.8->G
 Lbl 1
@@ -677,6 +771,21 @@ Goto 30
 Lbl 23
 0->J
 Lbl 30
+1->R
+If Q=1
+Goto 32
+If Q=3
+Goto 31
+Goto 32
+Lbl 31
+ClrHome
+Menu("MOVING WHICH WAY?","SAME AS Fx",33,"OPPOSITE",34)
+Lbl 33
+1->R
+Goto 32
+Lbl 34
+-1->R
+Lbl 32
 M*G->W
 F*cos(T)->H
 U*F*sin(T)->V
@@ -770,6 +879,7 @@ Output(5,1,"Fk needed (N)")
 Output(5,15,round(H,2))
 Output(6,1,"Mu k needed")
 Output(6,15,round(H/N,2))
+Output(7,1,"MOTION IS ALONG Fx")
 If J=0
 Then
 Output(8,1,"ENTER THIS MU K")
@@ -797,18 +907,22 @@ Goto 80
 End
 Output(3,1,"Fk (N)")
 Output(3,8,round(E,2))
-(H-E)*D->A
+D*(H-R*E)->A
 A/M->B
 Output(4,1,"Fnet (N)")
 Output(4,10,round(A,2))
 Output(6,1,"a (m/s2)")
 Output(6,11,round(B,2))
-If B>0
-Output(8,1,"SAME WAY AS Fx")
-If B<0
-Output(8,1,"OPPOSITE TO Fx")
 If B=0
 Output(8,1,"ZERO ACCELERATION")
+If B*D>0
+Output(8,1,"a IS SAME AS Fx")
+If B*D<0
+Output(8,1,"a IS OPPOSITE Fx")
+If B*D*R>0
+Output(9,1,"SPEEDING UP")
+If B*D*R<0
+Output(9,1,"SLOWING DOWN")
 Goto 80
 Lbl 80
 Pause "DONE"
@@ -879,6 +993,7 @@ Menu("AGAIN","NEW PROBLEM",81,"MAIN MENU",82)
 RAMPSLV = """\
 ClrHome
 Degree
+Full
 If G<=0
 9.8->G
 Lbl 1
@@ -1097,6 +1212,7 @@ Return
 FBDHELP = """\
 ClrHome
 Degree
+Full
 Lbl 1
 ClrHome
 Menu("FREE BODY HELP","FORCE SYMBOLS",2,"FRICTION",3,"ANGLED FORCE",4,"ON A RAMP",5,"EQUILIBRIUM",6,"NEWTON LAWS",7,"QUIT",8)
@@ -1253,6 +1369,17 @@ ORDER = ["FORCEMNU", "GSET", "VECADD", "FLATFRC", "ANGPULL", "RAMPSLV", "FBDHELP
 NAME_RE = re.compile(r"^[A-Z][A-Z0-9]{0,7}$")
 LABEL_RE = re.compile(r"^[A-Za-z0-9\u03b8]{1,2}$")
 OUTPUT_RE = re.compile(r"^Output\((\d+),(\d+),(.+)\)$")
+INPUT_PROMPT_RE = re.compile(r'^Input "([^"]*)",')
+
+# Screen geometry of the TI-84 Plus CE home screen in the large font.
+MAX_ROW = 10
+MAX_COL = 26
+MAX_MENU_ITEM = 24   # item text limit on the color models
+MAX_INPUT_PROMPT = 20
+# Widest a number can be once printed in Float mode (sign included), which is
+# what every numeric Output( in these sources produces via round(x,2).
+VALUE_WIDTH = 10
+
 BARE_TOKEN_ERRORS = {
     "Disp": "Disp needs an argument (the token is spelled 'Disp ')",
     "If": "If needs a condition (the token is spelled 'If ')",
@@ -1288,6 +1415,14 @@ def _split_menu_args(text: str) -> list:
             buf.append(ch)
     args.append("".join(buf).strip())
     return args
+
+
+def _output_width(argument: str) -> int:
+    """How many columns an Output( argument occupies once displayed."""
+    argument = argument.strip()
+    if len(argument) >= 2 and argument.startswith('"') and argument.endswith('"'):
+        return len(argument) - 2
+    return VALUE_WIDTH
 
 
 def validate_sources() -> list:
@@ -1345,18 +1480,43 @@ def validate_sources() -> list:
                 args = _split_menu_args(line[5:-1])
                 if (len(args) - 1) % 2 != 0:
                     errors.append("%s: Menu( needs text/label pairs" % tag)
+                if args:
+                    title = args[0].strip('"')
+                    if len(title) > MAX_COL:
+                        errors.append("%s: Menu( title %r is %d characters (limit %d)"
+                                      % (tag, title, len(title), MAX_COL))
+                for text in args[1::2]:
+                    item = text.strip('"')
+                    if len(item) > MAX_MENU_ITEM:
+                        errors.append("%s: Menu( item %r is %d characters (limit %d)"
+                                      % (tag, item, len(item), MAX_MENU_ITEM))
                 for index in range(2, len(args), 2):
                     menu_labels.append((tag, args[index]))
+            elif line.startswith("Input "):
+                match = INPUT_PROMPT_RE.match(line)
+                if match and len(match.group(1)) > MAX_INPUT_PROMPT:
+                    errors.append("%s: Input prompt %r is %d characters (limit %d)"
+                                  % (tag, match.group(1), len(match.group(1)),
+                                     MAX_INPUT_PROMPT))
             elif line.startswith("Output("):
                 match = OUTPUT_RE.match(line)
                 if not match:
                     errors.append("%s: malformed Output(" % tag)
                 else:
-                    row, col = int(match.group(1)), int(match.group(2))
-                    if not 1 <= row <= 10:
-                        errors.append("%s: Output row %d outside 1..10" % (tag, row))
-                    if not 1 <= col <= 26:
-                        errors.append("%s: Output column %d outside 1..26" % (tag, col))
+                    row = int(match.group(1))
+                    col = int(match.group(2))
+                    width = _output_width(match.group(3))
+                    if not 1 <= row <= MAX_ROW:
+                        errors.append("%s: Output row %d outside 1..%d"
+                                      % (tag, row, MAX_ROW))
+                    if col < 1:
+                        errors.append("%s: Output column %d is before column 1"
+                                      % (tag, col))
+                    end = col + width - 1
+                    if end > MAX_COL:
+                        errors.append(
+                            "%s: Output(%d,%d,...) reaches column %d, past the %d "
+                            "available" % (tag, row, col, end, MAX_COL))
 
             if line == "Then":
                 thens += 1

@@ -57,6 +57,11 @@ def test_solvers_never_hardcode_gravity():
 
 
 def test_output_stays_on_screen():
+    """Every Output( must fit: start column plus written width <= 26.
+
+    Output( wraps to the next row instead of erroring, so a too-wide write
+    silently corrupts the layout underneath.
+    """
     outputs = 0
     for name in fb.ORDER:
         for line in fb.clean_source(fb.PROGRAMS[name]).splitlines():
@@ -64,10 +69,60 @@ def test_output_stays_on_screen():
                 outputs += 1
                 match = fb.OUTPUT_RE.match(line)
                 assert match, line
-                row, col = int(match.group(1)), int(match.group(2))
-                assert 1 <= row <= 10, line
-                assert 1 <= col <= 26, line
+                row = int(match.group(1))
+                col = int(match.group(2))
+                width = fb._output_width(match.group(3))
+                assert 1 <= row <= fb.MAX_ROW, line
+                assert col >= 1, line
+                assert col + width - 1 <= fb.MAX_COL, line
     assert outputs > 100
+
+
+def test_display_overflow_is_rejected():
+    original = fb.PROGRAMS["GSET"]
+    try:
+        fb.PROGRAMS["GSET"] = 'ClrHome\nOutput(1,20,"TOO WIDE TO FIT")\n'
+        errors = fb.validate_sources()
+        assert any("reaches column" in error for error in errors), errors
+    finally:
+        fb.PROGRAMS["GSET"] = original
+
+
+def test_menu_text_limits_are_rejected():
+    original = fb.PROGRAMS["GSET"]
+    try:
+        fb.PROGRAMS["GSET"] = ('ClrHome\nMenu("T","%s",2\nLbl 2\nReturn\n' % ("X" * 25))
+        errors = fb.validate_sources()
+        assert any("Menu( item" in error for error in errors), errors
+    finally:
+        fb.PROGRAMS["GSET"] = original
+
+
+def test_acceleration_uses_the_motion_direction():
+    """Kinetic friction must be signed by the motion, not by the push."""
+    for name in ("FLATFRC", "ANGPULL"):
+        source = fb.clean_source(fb.PROGRAMS[name])
+        assert "MOVING WHICH WAY?" in source, name
+        assert "R*E" in source, name
+
+
+def test_vector_angles_and_forces_are_validated():
+    source = fb.clean_source(fb.PROGRAMS["VECADD"])
+    assert source.count("MUST BE 0 TO 360") >= 2, "angle range not checked"
+    assert source.count("MUST BE 0 OR MORE") >= 5, "N/S/E/W totals not checked"
+
+
+def test_vector_solver_names_each_cardinal_direction():
+    source = fb.clean_source(fb.PROGRAMS["VECADD"])
+    for label in ('"EAST (N)"', '"WEST (N)"', '"NORTH (N)"', '"SOUTH (N)"'):
+        assert label in source, label
+
+
+def test_programs_force_the_full_screen():
+    """Split screen makes Output( rows 5-10 an error, so each program sets Full."""
+    for name in fb.ORDER:
+        lines = fb.clean_source(fb.PROGRAMS[name]).splitlines()
+        assert "Full" in lines, name
 
 
 def test_each_program_has_a_way_back():

@@ -73,8 +73,14 @@ def nearest_axis(angle):
     return {0: "east", 1: "north", 2: "west", 3: "south"}[index]
 
 
-def flat_surface(mass, applied, g, state, mu_s=None, mu_k=None, direction_sign=1):
-    """Mirror of FLATFRC. `state`: 1 at rest, 2 constant velocity, 3 accelerating."""
+def flat_surface(mass, applied, g, state, mu_s=None, mu_k=None, direction_sign=1,
+                 motion_sign=1):
+    """Mirror of FLATFRC. `state`: 1 at rest, 2 constant velocity, 3 accelerating.
+
+    `direction_sign` is the push direction (+1 right, -1 left); `motion_sign`
+    is the direction the object is actually moving (+1 same way as the push,
+    -1 opposite). Kinetic friction always opposes `motion_sign`.
+    """
     weight = mass * g
     normal = weight
     fs_max = None if mu_s is None else mu_s * normal
@@ -95,18 +101,21 @@ def flat_surface(mass, applied, g, state, mu_s=None, mu_k=None, direction_sign=1
         if fs_max is not None:
             result["stays_at_rest"] = abs(applied) <= fs_max
     if state == 2:
+        # A body at constant velocity must move along the push: friction can
+        # only oppose, so motion opposite the push cannot be balanced.
         result["needs"] = abs(applied)
         result["mu_k_needed"] = abs(applied) / normal
         if fk is not None:
             result["consistent"] = abs(fk - abs(applied)) <= 0.05
     if state == 3:
         if fk is not None:
-            result["net"] = (abs(applied) - fk) * direction_sign
+            result["net"] = (abs(applied) - motion_sign * fk) * direction_sign
             result["a"] = result["net"] / mass
     return result
 
 
-def angled(mass, applied, g, angle, up, mu_s=None, mu_k=None, direction_sign=1):
+def angled(mass, applied, g, angle, up, mu_s=None, mu_k=None, direction_sign=1,
+           motion_sign=1):
     """Mirror of ANGPULL's analysis branch. `up`: True for a pull, False for a push."""
     u = 1 if up else -1
     weight = mass * g
@@ -132,7 +141,7 @@ def angled(mass, applied, g, angle, up, mu_s=None, mu_k=None, direction_sign=1):
         result["fs_max"] = mu_s * normal
     if mu_k is not None:
         result["fk"] = mu_k * normal
-        result["net"] = (horizontal - result["fk"]) * direction_sign
+        result["net"] = (horizontal - motion_sign * result["fk"]) * direction_sign
         result["a"] = result["net"] / mass
     return result
 
@@ -288,6 +297,23 @@ def test_horizontal_unknown_mu_never_invents_friction():
     assert case["stays_at_rest"] is None
 
 
+def test_kinetic_friction_opposes_motion_not_the_push():
+    with_push = flat_surface(10, 60, 9.8, 3, mu_s=0.5, mu_k=0.4, motion_sign=1)
+    against_push = flat_surface(10, 60, 9.8, 3, mu_s=0.5, mu_k=0.4, motion_sign=-1)
+    assert with_push["net"] == pytest_approx(20.8)
+    assert against_push["net"] == pytest_approx(60 + 39.2)
+    assert against_push["net"] > with_push["net"]
+
+
+def test_horizontal_sliding_against_the_push_slows_down():
+    # pushed right at 60 N while sliding left: both push and friction act right,
+    # so the acceleration points right, opposite to the motion.
+    case = flat_surface(10, 60, 9.8, 3, mu_s=0.5, mu_k=0.4,
+                        direction_sign=1, motion_sign=-1)
+    assert case["a"] == pytest_approx(9.92)
+    assert case["a"] > 0
+
+
 # ---------------------------------------------------------------------------
 # Angled forces
 # ---------------------------------------------------------------------------
@@ -332,6 +358,14 @@ def test_angled_equilibrium_has_no_solution_when_friction_wins():
     assert angled_force_for_equilibrium(10, 9.8, 60, up=True, mu=0.7) is not None
     # Pushing down cannot: cos(60) - 0.7*sin(60) < 0, so no finite push works.
     assert angled_force_for_equilibrium(10, 9.8, 60, up=False, mu=0.7) is None
+
+
+def test_angled_acceleration_when_moving_against_the_pull():
+    with_pull = angled(10, 50, 9.8, 30, up=True, mu_k=0.3, motion_sign=1)
+    against_pull = angled(10, 50, 9.8, 30, up=True, mu_k=0.3, motion_sign=-1)
+    assert with_pull["net"] == pytest_approx(21.4013, abs=0.001)
+    assert against_pull["net"] == pytest_approx(43.3013 + 21.9, abs=0.01)
+    assert against_pull["a"] == pytest_approx(6.52013, abs=0.01)
 
 
 # ---------------------------------------------------------------------------
